@@ -47,6 +47,7 @@ nirb.YTManager = class {
 		this.videoID = ytID;
 		// this.videoPlayer.src = `https://www.youtube.com/embed/${ytID}`;
 		player.loadVideoById(ytID, 0);
+		this.showPlayer();
 	}
 	resetTagList () {
 		this.tagsArray = [];
@@ -77,9 +78,15 @@ nirb.YTManager = class {
 	}
 	hidePlayer () {
 		document.querySelector("#player").style.display =  "none";
+		document.querySelector("#tagDec").style.display = "none";
+		document.querySelector("#tagInc").style.display = "none";
+		document.querySelector("#videoPlaceholder").style.display = "inline-block";
 	}
 	showPlayer () {
 		document.querySelector("#player").style.display =  "block";
+		document.querySelector("#tagDec").style.display = "block";
+		document.querySelector("#tagInc").style.display = "block";
+		document.querySelector("#videoPlaceholder").style.display = "none";
 	}
 
 }
@@ -88,6 +95,7 @@ nirb.TaggerParser = class {
 		this.taggerRegex = /(?:Tags)?\nhttps:\/\/www.youtube.com\/watch\?v=(.*)\sstart\stime:\s(\d\d:\d\d:\d\d\s\w*)\s\((\d\d)\)\n((?:.|\n)*)/gm;
 		this.tagListRegex = /(.*?)(?:(\d{1,2})h)?(?:(\d{1,2})m)?(?:(\d{1,2})s)$/;
 		this.numTags = 0;
+		this.regexRetry = 0;
 		document.querySelector("#submitTaggerInput").addEventListener('click', (event) => {
 			const taggerTextArea = document.querySelector("#taggerInput");
 			// console.log("button pressed");
@@ -101,6 +109,12 @@ nirb.TaggerParser = class {
 
 		const captureArray = this.taggerRegex.exec(taggerString);
 		if (captureArray == null) {
+			this.regexRetry++;
+			if(this.regexRetry > 10) {
+				this.regexRetry = 0;
+				window.alert("Failed to parse Korotagger input, bad formatting?");
+				return;
+			}
 			this.parseVideoDetails(taggerString); // weird stupid fix because regex doesn't like parsing the first time around
 			return;
 		}
@@ -154,6 +168,7 @@ nirb.TSTag = class {
 nirb.main = function () {
 	console.log("Ready");
 	this.YTManagerSingleton = new nirb.YTManager();
+	this.YTManagerSingleton.hidePlayer();
 	this.TaggerParserSingleton = new nirb.TaggerParser();
 	
 	// document.querySelector("#testButton").addEventListener('click', (event) => {
