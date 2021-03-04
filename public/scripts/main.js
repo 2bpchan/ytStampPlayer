@@ -30,7 +30,7 @@ nirb.YTManager = class {
 			}
 		});
 		document.querySelector("#tagDec").addEventListener("click", (event) => {
-			if (this.currentIndex == 0) {
+			if (this.currentIndex <= 0) {
 				console.log("Already at first tag, can't go back any further!");
 			} else {
 				this.currentIndex -= 1;
@@ -40,14 +40,15 @@ nirb.YTManager = class {
 		// this.videoPlayer = document.querySelector("#player");
 		this.tagsArray = [];
 		this.videoID = null;
-		this.currentIndex = 0;
+		this.currentIndex = -1;
 	}
 	setCurrentVideo (ytID) {
 		console.log("Now playing: " + ytID);
 		this.videoID = ytID;
 		// this.videoPlayer.src = `https://www.youtube.com/embed/${ytID}`;
-		player.loadVideoById(ytID, 0);
-		this.showPlayer();
+		player.loadVideoById({'videoId': ytID});
+		player.seekTo(0);
+		player.pauseVideo();
 	}
 	resetTagList () {
 		this.tagsArray = [];
@@ -61,13 +62,15 @@ nirb.YTManager = class {
 			//this.videoPlayer.src = `https://www.youtube.com/embed/${this.videoID}?t=${this.tagsArray[0].time}`;
 			player.seekTo(this.tagsArray[0].time);
 			player.playVideo();
+			// this.currentIndex = 0;
 		} else {
 			console.log("No tags loaded!");
 		}
 	}
 	goToTagAtIndex (index) {
 		if (this.tagsArray[index]) {
-			console.log(`Jumping to tag ${this.tagsArray[index].name} at time ${this.tagsArray[index].time}`);
+			// console.log(`Jumping to tag ${this.tagsArray[index].name} at time ${this.tagsArray[index].time}`);
+			this.updateTagDisplay(this.tagsArray[index]);
 			this.currentIndex = index;
 			// this.videoPlayer.src = `https://www.youtube.com/embed/${this.videoID}?t=${this.tagsArray[index].time}`;
 			player.seekTo(this.tagsArray[index].time);
@@ -77,22 +80,26 @@ nirb.YTManager = class {
 		}
 	}
 	hidePlayer () {
+		document.querySelector("#currentTagDisplay").style.display = "none";
 		document.querySelector("#player").style.display =  "none";
 		document.querySelector("#tagDec").style.display = "none";
 		document.querySelector("#tagInc").style.display = "none";
 		document.querySelector("#videoPlaceholder").style.display = "inline-block";
 	}
 	showPlayer () {
+		document.querySelector("#currentTagDisplay").style.display = "block";
 		document.querySelector("#player").style.display =  "block";
 		document.querySelector("#tagDec").style.display = "block";
 		document.querySelector("#tagInc").style.display = "block";
 		document.querySelector("#videoPlaceholder").style.display = "none";
 	}
-
+	updateTagDisplay(tag) {
+		document.querySelector("#currentTagDisplay").innerHTML = `Current Tag: ${tag.name}`;	
+	}
 }
 nirb.TaggerParser = class {
 	constructor() {
-		this.taggerRegex = /(?:Tags)?\nhttps:\/\/www.youtube.com\/watch\?v=(.*)\sstart\stime:\s(\d\d:\d\d:\d\d\s\w*)\s\((\d\d)\)\n((?:.|\n)*)/gm;
+		this.taggerRegex = /(?:Tags)?\n?https:\/\/www.youtube.com\/watch\?v=(.*)\sstart\stime:\s(\d\d:\d\d:\d\d\s\w*)\s\((\d\d)\)\n((?:.|\n)*)/gm;
 		this.tagListRegex = /(.*?)(?:(\d{1,2})h)?(?:(\d{1,2})m)?(?:(\d{1,2})s)$/;
 		this.numTags = 0;
 		this.regexRetry = 0;
@@ -121,7 +128,8 @@ nirb.TaggerParser = class {
 		console.log(captureArray);
 		const videoId = captureArray[1];
 		nirb.YTManagerSingleton.setCurrentVideo(videoId);
-		const startTime = captureArray[2];
+
+		// const startTime = captureArray[2];
 		this.numTags = captureArray[3];
 		const rawTagString = captureArray[4];
 		this.parseTags(rawTagString);
@@ -149,7 +157,9 @@ nirb.TaggerParser = class {
 			console.log("adding tag: " + newTag);
 			nirb.YTManagerSingleton.addTagToList(newTag);
 		}
-		console.log(nirb.YTManagerSingleton.tagsArray);
+		// console.log(nirb.YTManagerSingleton.tagsArray);
+		nirb.YTManagerSingleton.showPlayer();
+		nirb.YTManagerSingleton.currentIndex = -1;
 	}
 }
 

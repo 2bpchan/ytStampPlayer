@@ -17,6 +17,9 @@
   </nav>
   <div id="mainPage" class="container page-container">
 	<div class="row justify-content-center">
+		<h5 id="currentTagDisplay">Current Tag: </h5>
+	</div>
+	<div class="row justify-content-center">
 		<!-- <iframe id="player" width="900" height="506" src="https://www.youtube.com/embed/38_9XUFTFzs" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" fs="0"></iframe> -->
 		<h3 id="videoPlaceholder">Load a video by pasting in Korotagger input into the textbox below!</h3>
 		<div id="player"></div>
@@ -35,7 +38,7 @@
 			  player = new YT.Player('player', {
 				height: '390',
 				width: '640',
-				videoId: 'M7lc1UVf-VE',
+				videoId: 'dQw4w9WgXcQ',
 				events: {
 				  'onReady': onPlayerReady,
 				  'onStateChange': onPlayerStateChange
@@ -45,7 +48,7 @@
 	  
 			// 4. The API will call this function when the video player is ready.
 			function onPlayerReady(event) {
-			  event.target.playVideo();
+			  // event.target.playVideo();
 			}
 	  
 			// 5. The API calls this function when the player's state changes.
