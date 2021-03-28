@@ -85,6 +85,8 @@ nirb.YTManager = class {
 		document.querySelector("#tagDec").style.display = "none";
 		document.querySelector("#tagInc").style.display = "none";
 		document.querySelector("#videoPlaceholder").style.display = "inline-block";
+		document.querySelector("#tagInstructionsTitle").style.display = "block";
+		document.querySelector("#tagInstructions").style.display = "block";
 	}
 	showPlayer () {
 		document.querySelector("#currentTagDisplay").style.display = "block";
@@ -92,6 +94,8 @@ nirb.YTManager = class {
 		document.querySelector("#tagDec").style.display = "block";
 		document.querySelector("#tagInc").style.display = "block";
 		document.querySelector("#videoPlaceholder").style.display = "none";
+		document.querySelector("#tagInstructionsTitle").style.display = "none";
+		document.querySelector("#tagInstructions").style.display = "none";
 	}
 	updateTagDisplay(tag) {
 		document.querySelector("#currentTagDisplay").innerHTML = `Current Tag: ${tag.name}`;	
@@ -99,8 +103,9 @@ nirb.YTManager = class {
 }
 nirb.TaggerParser = class {
 	constructor() {
-		this.taggerRegex = /(?:Tags)?\n?https:\/\/www.youtube.com\/watch\?v=(.*)\sstart\stime:\s(\d\d:\d\d:\d\d\s\w*)\s\((\d\d)\)\n((?:.|\n)*)/gm;
-		this.tagListRegex = /(.*?)(?:(\d{1,2})h)?(?:(\d{1,2})m)?(?:(\d{1,2})s)$/;
+		this.taggerRegex = /(?:Tags)?\n?(?:https:\/\/www\.youtube\.com\/watch\?v=(.*?))(?:\sstart\stime:\s(\d\d:\d\d:\d\d\s\w*)\s\((\d\d)\))?\n((?:.|\n)*)/gm;
+		this.shortenedTaggerRegex = /(?:Tags)?\n?(?:https:\/\/youtu\.be\/(.*))(?:\sstart\stime:\s(\d\d:\d\d:\d\d\s\w*)\s\((\d\d)\))?\n((?:.|\n)*)/gm;
+		this.tagListRegex = /(.*?)(?:(\d{1,2})(?:h|:))?(?:(\d{1,2})(?:m|:))?(?:(\d{1,2})s?)(.*?)$/;
 		this.numTags = 0;
 		this.regexRetry = 0;
 		document.querySelector("#submitTaggerInput").addEventListener('click', (event) => {
@@ -114,16 +119,22 @@ nirb.TaggerParser = class {
 	parseVideoDetails(taggerString) {
 		console.log(taggerString + ", appling regex " + this.taggerRegex);
 
-		const captureArray = this.taggerRegex.exec(taggerString);
+		let captureArray = this.taggerRegex.exec(taggerString);
 		if (captureArray == null) {
 			this.regexRetry++;
 			if(this.regexRetry > 10) {
-				this.regexRetry = 0;
-				window.alert("Failed to parse Korotagger input, bad formatting?");
+				captureArray = this.shortenedTaggerRegex.exec(taggerString);
+				if(captureArray == null) {
+					captureArray = this.shortenedTaggerRegex.exec(taggerString);
+					if(captureArray == null) {
+						window.alert("Failed to parse tags, bad formatting?");
+						return;
+					}
+				}
+			} else {
+				this.parseVideoDetails(taggerString); // weird stupid fix because regex doesn't like parsing the first time around
 				return;
 			}
-			this.parseVideoDetails(taggerString); // weird stupid fix because regex doesn't like parsing the first time around
-			return;
 		}
 		console.log(captureArray);
 		const videoId = captureArray[1];
@@ -145,16 +156,23 @@ nirb.TaggerParser = class {
 			let tagMinutes = 0;
 			let tagArray = this.tagListRegex.exec(rawTagArray[i]);
 			console.log("Parsed tag as: ", tagArray);
+			if (tagArray == null) {
+				continue;
+			}
+			let tagTitle = tagArray[1];
+			if (tagArray[1] == "" || tagArray[1] == null) {
+				tagTitle = tagArray[5];
+			}
 			if (tagArray[2]) {
 				tagHours = parseInt(tagArray[2]); // if the tag has an hour field, set the hour field
 			}
 			if (tagArray[3]) {
 				tagMinutes = parseInt(tagArray[3]); // if the tag has an minute field, set the minute field
 			}
-			let tagSeconds = parseInt(tagArray[4])
+			let tagSeconds = parseInt(tagArray[4]);
 			let tagTotalSeconds = (tagHours * 3600) + (tagMinutes * 60) + tagSeconds; //tag will always have a seconds field
-			const newTag = new nirb.TSTag(tagArray[1], tagTotalSeconds, tagHours, tagMinutes, tagSeconds);
-			console.log("adding tag: " + newTag);
+			const newTag = new nirb.TSTag(tagTitle, tagTotalSeconds, tagHours, tagMinutes, tagSeconds);
+			console.log(`adding tag with title "${tagTitle}" at ${tagTotalSeconds} (${tagHours}h${tagMinutes}${tagSeconds}s)`);
 			nirb.YTManagerSingleton.addTagToList(newTag);
 		}
 		// console.log(nirb.YTManagerSingleton.tagsArray);

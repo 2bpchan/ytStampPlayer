@@ -21,7 +21,7 @@
 	</div>
 	<div class="row justify-content-center">
 		<!-- <iframe id="player" width="900" height="506" src="https://www.youtube.com/embed/38_9XUFTFzs" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" fs="0"></iframe> -->
-		<h3 id="videoPlaceholder">Load a video by pasting in Korotagger input into the textbox below!</h3>
+		<h3 id="videoPlaceholder">Load a video by pasting in a link to the YouTube video, followed by a list of timestamps info into the textbox below!</h3>
 		<div id="player"></div>
 		<script>
 			// 2. This code loads the IFrame Player API code asynchronously.
@@ -36,8 +36,8 @@
 			var player;
 			function onYouTubeIframeAPIReady() {
 			  player = new YT.Player('player', {
-				height: '390',
-				width: '640',
+				height: '780',
+				width: '1280',
 				videoId: 'dQw4w9WgXcQ',
 				events: {
 				  'onReady': onPlayerReady,
@@ -75,10 +75,21 @@
 		</div>
 	</div>
 	<div class="row justify-content-center">
-		<textarea name="taggerInput" id="taggerInput" cols="30" rows="10"></textarea>
+		<textarea name="taggerInput" id="taggerInput" cols="50" rows="10"></textarea>
 	</div>
 	<div class="row justify-content-center">
 		<button id="submitTaggerInput" class="btn">Submit</button>
+	</div>
+	<hr>
+	<div class="row justify-content-center">
+		<h2 id="tagInstructionsTitle">Example Input</h2>
+	</div>
+	<div class="row justify-content-center">
+		<textarea name="" id="tagInstructions" cols="50" rows="10" readonly>https://www.youtube.com/watch?v=dQw4w9WgXcQ
+first tag 00:01:02
+1:31:29 second tag
+third tag 1h2m45s
+(timestamps can be in any of the formats listed above)</textarea>	
 	</div>
 	
 
