@@ -18,6 +18,8 @@ nirb.functionName = function () {
 	/** function body */
 };
 
+//this class is mostly a puppet class that adapts the methods provided by the player object
+//for use with this app
 nirb.YTManager = class {
 	constructor() {
 		// TODO set up some click listeners here for tag jumping controls later
@@ -115,7 +117,6 @@ nirb.TaggerParser = class {
 		this.tagListRegexArray = [];
 		this.tagListRegexArray.push(this.tagListRegex);
 		this.numTags = 0;
-		this.regexRetry = 0;
 		document.querySelector("#submitTaggerInput").addEventListener('click', (event) => {
 			const taggerTextArea = document.querySelector("#taggerInput");
 			// console.log("button pressed");
@@ -127,26 +128,12 @@ nirb.TaggerParser = class {
 	parseVideoDetails(taggerString) {
 		console.log(taggerString + ", appling regex " + this.taggerRegex);
 
-		//let captureArray = this.taggerRegex.exec(taggerString);
-		// if (captureArray == null) {
-		// 	this.regexRetry++;
-		// 	if(this.regexRetry > 10) {
-		// 		captureArray = this.shortenedTaggerRegex.exec(taggerString);
-		// 		if(captureArray == null) {
-		// 			captureArray = this.shortenedTaggerRegex.exec(taggerString);
-		// 			if(captureArray == null) {
-		// 				window.alert("Failed to parse tags, bad formatting?");
-		// 				return;
-		// 			}
-		// 		}
-		// 	} else {
-		// 		this.parseVideoDetails(taggerString); // weird stupid fix because regex doesn't like parsing the first time around
-		// 		return;
-		// 	}
-		// }
-
 		let captureArray = null;
 
+		//attempt to parse the input
+		//the reason it's an array is because there are two regexes
+		//that search for both shortened and unshortened youtube video urls
+		//also leaves room for expansion later with other formats like output from discord bots
 		for(let i = 0; i<this.taggerRegexArray.length;i++){
 			captureArray = this.taggerRegexArray[i].exec(taggerString);
 			if(captureArray != null){
@@ -154,6 +141,7 @@ nirb.TaggerParser = class {
 			}
 		}
 
+		//try again, sometimes it doesn't work on the first try for some reason
 		if(captureArray == null){
 
 			for(let i = 0; i<this.taggerRegexArray.length;i++){
@@ -194,23 +182,35 @@ nirb.TaggerParser = class {
 			if (tagArray == null) {
 				continue;
 			}
+			//regex exec array returns an array like:
+			// 1     2     3       4       5
+			// title hours minutes seconds titleIfBehindTimestamp
+			// (index 0 is the full match)
 			let tagTitle = tagArray[1];
 			if (tagArray[1] == "" || tagArray[1] == null) {
-				tagTitle = tagArray[5];
+				tagTitle = tagArray[5]; // if title was not found at the beginning put in the title we found at the end
 			}
-			// if (tagArray[2]) {
-			// 	tagHours = parseInt(tagArray[2]); // if the tag has an hour field, set the hour field
-			// }
-			// if (tagArray[3]) {
-			// 	tagMinutes = parseInt(tagArray[3]); // if the tag has an minute field, set the minute field
-			// }
-			let timeArray = [];
+
+			//parse the time from the array returned by the regex exec
+			//due to how the regex prioritizes stuff,
+			//it will try to fill the fields like
+			//hours->minutes->seconds.
+			//So if a tag has only two time fields, like 1:45
+			//, the default interpretation would be 1 HOUR and 45 MINUTES
+			//instead of the (most likely) intended 1 MINUTE and 45 SECONDS
+
+			//this is my solution:
+			let timeArray = []; //empty array that acts as a stack
+			//iterate backwards from the seconds index to the hours index
 			for(let timeDenom = 4; timeDenom>=2; timeDenom--){
-				if(tagArray[timeDenom]){
-					timeArray.push(parseInt(tagArray[timeDenom]));
+				if(tagArray[timeDenom] && tagArray[timeDenom] != 0){
+					timeArray.push(parseInt(tagArray[timeDenom])); //only insert into the stack if the time isn't null(zero is an exception)
+																   //so we override its falsy nature
 				}
 			}
-			console.log(`TIME DENOMINATION: ${timeArray}`);
+			//timeArray now has all the units of time in order of ascending magnitude
+			//now we can just set the variables declared at the beginning of this for loop to the values in the array
+			//console.log(`TIME DENOMINATION: ${timeArray}`);
 			for(let timeIndex = 0; timeIndex<timeArray.length; timeIndex++){
 				switch(timeIndex){
 					case 0:
@@ -225,9 +225,7 @@ nirb.TaggerParser = class {
 				}
 			}
 
-
-
-//			tagSeconds = parseInt(tagArray[4]);
+			//calculate total time in seconds because we need that to jump to that point in the video
 			let tagTotalSeconds = (tagHours * 3600) + (tagMinutes * 60) + tagSeconds; //tag will always have a seconds field
 			const newTag = new nirb.TSTag(tagTitle, tagTotalSeconds, tagHours, tagMinutes, tagSeconds);
 
@@ -236,7 +234,7 @@ nirb.TaggerParser = class {
 		}
 		// console.log(nirb.YTManagerSingleton.tagsArray);
 		nirb.YTManagerSingleton.showPlayer();
-		nirb.YTManagerSingleton.currentIndex = -1;
+		nirb.YTManagerSingleton.currentIndex = -1; //start at an invalid tag index so the video doesn't start playing until the user clicks next, after which it starts at the first tag
 	}
 }
 
