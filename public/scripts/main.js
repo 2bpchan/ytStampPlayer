@@ -105,7 +105,15 @@ nirb.TaggerParser = class {
 	constructor() {
 		this.taggerRegex = /(?:Tags)?\n?(?:https:\/\/www\.youtube\.com\/watch\?v=(.*?))(?:\sstart\stime:\s(\d\d:\d\d:\d\d\s\w*)\s\((\d\d)\))?\n((?:.|\n)*)/gm;
 		this.shortenedTaggerRegex = /(?:Tags)?\n?(?:https:\/\/youtu\.be\/(.*))(?:\sstart\stime:\s(\d\d:\d\d:\d\d\s\w*)\s\((\d\d)\))?\n((?:.|\n)*)/gm;
-		this.tagListRegex = /(.*?)(?:(\d{1,2})(?:h|:))?(?:(\d{1,2})(?:m|:))?(?:(\d{1,2})s?)(.*?)$/;
+
+		this.taggerRegexArray = [];
+		this.taggerRegexArray.push(this.taggerRegex);
+		this.taggerRegexArray.push(this.shortenedTaggerRegex);
+
+		//this.tagListRegex = /(.*?)(?:(\d{1,2})(?:h|:))?(?:(\d{1,2})(?:m|:))?(?:(\d{1,2})s?)(.*?)$/;
+		this.tagListRegex = /(.*?)(?:(\d{1,2})(?::))?(?:(\d{1,2})(?::))?(?:(\d{1,2}))(.*?)$/;
+		this.tagListRegexArray = [];
+		this.tagListRegexArray.push(this.tagListRegex);
 		this.numTags = 0;
 		this.regexRetry = 0;
 		document.querySelector("#submitTaggerInput").addEventListener('click', (event) => {
@@ -119,23 +127,49 @@ nirb.TaggerParser = class {
 	parseVideoDetails(taggerString) {
 		console.log(taggerString + ", appling regex " + this.taggerRegex);
 
-		let captureArray = this.taggerRegex.exec(taggerString);
-		if (captureArray == null) {
-			this.regexRetry++;
-			if(this.regexRetry > 10) {
-				captureArray = this.shortenedTaggerRegex.exec(taggerString);
-				if(captureArray == null) {
-					captureArray = this.shortenedTaggerRegex.exec(taggerString);
-					if(captureArray == null) {
-						window.alert("Failed to parse tags, bad formatting?");
-						return;
-					}
+		//let captureArray = this.taggerRegex.exec(taggerString);
+		// if (captureArray == null) {
+		// 	this.regexRetry++;
+		// 	if(this.regexRetry > 10) {
+		// 		captureArray = this.shortenedTaggerRegex.exec(taggerString);
+		// 		if(captureArray == null) {
+		// 			captureArray = this.shortenedTaggerRegex.exec(taggerString);
+		// 			if(captureArray == null) {
+		// 				window.alert("Failed to parse tags, bad formatting?");
+		// 				return;
+		// 			}
+		// 		}
+		// 	} else {
+		// 		this.parseVideoDetails(taggerString); // weird stupid fix because regex doesn't like parsing the first time around
+		// 		return;
+		// 	}
+		// }
+
+		let captureArray = null;
+
+		for(let i = 0; i<this.taggerRegexArray.length;i++){
+			captureArray = this.taggerRegexArray[i].exec(taggerString);
+			if(captureArray != null){
+				break;
+			}
+		}
+
+		if(captureArray == null){
+
+			for(let i = 0; i<this.taggerRegexArray.length;i++){
+				captureArray = this.taggerRegexArray[i].exec(taggerString);
+				if(captureArray != null){
+					break;
 				}
-			} else {
-				this.parseVideoDetails(taggerString); // weird stupid fix because regex doesn't like parsing the first time around
+			}
+			if(captureArray == null){
+				window.alert("Failed to parse tags, bad formatting?");
 				return;
 			}
 		}
+
+
+
 		console.log(captureArray);
 		const videoId = captureArray[1];
 		nirb.YTManagerSingleton.setCurrentVideo(videoId);
@@ -154,6 +188,7 @@ nirb.TaggerParser = class {
 		for (let i = 0; i<rawTagArray.length; i++) {
 			let tagHours = 0;
 			let tagMinutes = 0;
+			let tagSeconds = 0;
 			let tagArray = this.tagListRegex.exec(rawTagArray[i]);
 			console.log("Parsed tag as: ", tagArray);
 			if (tagArray == null) {
@@ -163,16 +198,40 @@ nirb.TaggerParser = class {
 			if (tagArray[1] == "" || tagArray[1] == null) {
 				tagTitle = tagArray[5];
 			}
-			if (tagArray[2]) {
-				tagHours = parseInt(tagArray[2]); // if the tag has an hour field, set the hour field
+			// if (tagArray[2]) {
+			// 	tagHours = parseInt(tagArray[2]); // if the tag has an hour field, set the hour field
+			// }
+			// if (tagArray[3]) {
+			// 	tagMinutes = parseInt(tagArray[3]); // if the tag has an minute field, set the minute field
+			// }
+			let timeArray = [];
+			for(let timeDenom = 4; timeDenom>=2; timeDenom--){
+				if(tagArray[timeDenom]){
+					timeArray.push(parseInt(tagArray[timeDenom]));
+				}
 			}
-			if (tagArray[3]) {
-				tagMinutes = parseInt(tagArray[3]); // if the tag has an minute field, set the minute field
+			console.log(`TIME DENOMINATION: ${timeArray}`);
+			for(let timeIndex = 0; timeIndex<timeArray.length; timeIndex++){
+				switch(timeIndex){
+					case 0:
+						tagSeconds = timeArray[timeIndex];
+						break;
+					case 1:
+						tagMinutes = timeArray[timeIndex];
+						break;
+					case 2:
+						tagHours = timeArray[timeIndex];
+						break;
+				}
 			}
-			let tagSeconds = parseInt(tagArray[4]);
+
+
+
+//			tagSeconds = parseInt(tagArray[4]);
 			let tagTotalSeconds = (tagHours * 3600) + (tagMinutes * 60) + tagSeconds; //tag will always have a seconds field
 			const newTag = new nirb.TSTag(tagTitle, tagTotalSeconds, tagHours, tagMinutes, tagSeconds);
-			console.log(`adding tag with title "${tagTitle}" at ${tagTotalSeconds} (${tagHours}h${tagMinutes}${tagSeconds}s)`);
+
+			console.log(`adding tag with title "${tagTitle}" at ${tagTotalSeconds} (${tagHours}h${tagMinutes}m${tagSeconds}s)`);
 			nirb.YTManagerSingleton.addTagToList(newTag);
 		}
 		// console.log(nirb.YTManagerSingleton.tagsArray);
