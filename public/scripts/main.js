@@ -111,9 +111,10 @@ nirb.TaggerParser = class {
 		this.taggerRegexArray = [];
 		this.taggerRegexArray.push(this.taggerRegex);
 		this.taggerRegexArray.push(this.shortenedTaggerRegex);
+		this.isKorotaggerInput = true;
 
-		//this.tagListRegex = /(.*?)(?:(\d{1,2})(?:h|:))?(?:(\d{1,2})(?:m|:))?(?:(\d{1,2})s?)(.*?)$/;
-		this.tagListRegex = /(.*?)(?:(\d{1,2})(?::))?(?:(\d{1,2})(?::))?(?:(\d{1,2}))(.*?)$/;
+		this.tagListRegex = /(.*?)(?:(\d{1,2})(?:h|:))?(?:(\d{1,2})(?:m|:))?(?:(\d{1,2})s?)$/;
+		//this.tagListRegex = /(.*?)(?:(\d{1,2})(?::))?(?:(\d{1,2})(?::))?(?:(\d{1,2}))(.*?)$/;
 		this.tagListRegexArray = [];
 		this.tagListRegexArray.push(this.tagListRegex);
 		this.numTags = 0;
@@ -121,8 +122,98 @@ nirb.TaggerParser = class {
 			const taggerTextArea = document.querySelector("#taggerInput");
 			// console.log("button pressed");
 			// console.log(taggerTextArea.value);
+			if(this.isKorotaggerInput){
+				this.parseVideoDetailsKorotagger(taggerTextArea.value)
+				return
+			}
 			this.parseVideoDetails(taggerTextArea.value);
 		});
+	}
+
+	parseVideoDetailsKorotagger(taggerString) {
+		console.log(taggerString + ", applying custom Korotagger parsing:");
+
+		//lazy so copying this for now
+		let captureArray = null;
+
+		//attempt to parse the input
+		//the reason it's an array is because there are two regexes
+		//that search for both shortened and unshortened youtube video urls
+		//also leaves room for expansion later with other formats like output from discord bots
+		for(let i = 0; i<this.taggerRegexArray.length;i++){
+			captureArray = this.taggerRegexArray[i].exec(taggerString);
+			if(captureArray != null){
+				break;
+			}
+		}
+
+		//try again, sometimes it doesn't work on the first try for some reason
+		if(captureArray == null){
+
+			for(let i = 0; i<this.taggerRegexArray.length;i++){
+				captureArray = this.taggerRegexArray[i].exec(taggerString);
+				if(captureArray != null){
+					break;
+				}
+			}
+			if(captureArray == null){
+				window.alert("Failed to parse tags, bad formatting?");
+				return;
+			}
+		}
+		console.log(captureArray);
+		const videoId = captureArray[1];
+		nirb.YTManagerSingleton.setCurrentVideo(videoId);
+
+		// const startTime = captureArray[2];
+		this.numTags = captureArray[3];
+		const rawTagString = captureArray[4];
+		this.parseTagsKorotagger(rawTagString);
+	}
+
+	parseTagsKorotagger(rawTagString) {
+		const rawTagArray = rawTagString.split("\n");
+		console.log("Parsing over array(Korotagger ver.):")
+		console.log(rawTagArray);
+		nirb.YTManagerSingleton.resetTagList();
+
+		for (let i = 0; i<rawTagArray.length; i++) {
+			// parse second
+			console.log("inspecting string: " + rawTagArray[i])
+			let secondRegex = /(\d{1,2})s$/;
+			let secondArray = secondRegex.exec(rawTagArray[i]);
+			//console.log("parsed seconds as: " + secondArray);
+			let minuteSecondRegex = /(\d{1,2})m(\d{1,2})s$/;
+			let minuteSecondArray = minuteSecondRegex.exec(rawTagArray[i]);
+			//console.log("parsed minutes:seconds as: " + minuteSecondArray);
+			let hourSecondRegex = /(\d{1,2})h(\d{1,2})s$/;
+			let hourSecondArray = hourSecondRegex.exec(rawTagArray[i]);
+			//console.log("parsed hours:seconds as: " + hourSecondArray);
+			let hourMinuteSecondRegex = /(\d{1,2})h(\d{1,2})m(\d{1,2})s$/;
+			let hourMinuteSecondArray = hourMinuteSecondRegex.exec(rawTagArray[i]);
+			//console.log("parsed hours:minutes:seconds as: " + hourMinuteSecondArray);
+			let hours = 0;
+			let minutes = 0;
+			let seconds = 0;
+
+			if(hourMinuteSecondArray){
+				hours = hourMinuteSecondArray[1];
+				minutes = hourMinuteSecondArray[2];
+				seconds = hourMinuteSecondArray[3];
+			}
+			if(hourSecondArray){
+				hours = hourSecondArray[1];
+				seconds = hourSecondArray[2];
+			}
+			if(minuteSecondArray){
+				minutes = minuteSecondArray[1];
+				seconds = minuteSecondArray[2];
+			}
+			if(secondArray){
+				seconds = secondArray[1];
+			}
+			console.log("parsed out: " + hours + " hours, " + minutes + " minutes, and " + seconds + " seconds!")
+		}
 	}
 
 	parseVideoDetails(taggerString) {
@@ -198,6 +289,8 @@ nirb.TaggerParser = class {
 			//So if a tag has only two time fields, like 1:45
 			//, the default interpretation would be 1 HOUR and 45 MINUTES
 			//instead of the (most likely) intended 1 MINUTE and 45 SECONDS
+			// future brian here, hahaha korotagger messes this up, we actually want one hour 45 seconds sometimes woo
+			// this should be a different thing
 
 			//this is my solution:
 			let timeArray = []; //empty array that acts as a stack
