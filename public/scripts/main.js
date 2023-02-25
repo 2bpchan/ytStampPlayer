@@ -39,6 +39,36 @@ nirb.YTManager = class {
 				this.goToTagAtIndex(this.currentIndex);
 			}
 		});
+		document.addEventListener('keydown', (event) => {
+			let name = event.key;
+			let code = event.code;
+			if(event.key === "ArrowRight"){
+				if (this.currentIndex >= this.tagsArray.length - 1) {
+					console.log("Already at last tag, can't go forwards any further!");
+				} else {
+					this.currentIndex += 1;
+					this.goToTagAtIndex(this.currentIndex);
+				}
+			}
+
+			if(event.key === "ArrowLeft"){
+				if (this.currentIndex <= 0) {
+					console.log("Already at first tag, can't go back any further!");
+				} else {
+					this.currentIndex -= 1;
+					this.goToTagAtIndex(this.currentIndex);
+				}
+			}
+
+			if(event.key === "Escape"){
+				this.hidePlayer();
+				this.resetTagList();
+				player.seekTo(0);
+				player.pauseVideo();
+				this.updateTagDisplay(new nirb.TSTag("", 0, 0, 0, 0));
+			}
+		});
+
 		// this.videoPlayer = document.querySelector("#player");
 		this.tagsArray = [];
 		this.videoID = null;
@@ -84,20 +114,24 @@ nirb.YTManager = class {
 	hidePlayer () {
 		document.querySelector("#currentTagDisplay").style.display = "none";
 		document.querySelector("#player").style.display =  "none";
+		document.querySelector("#playerInstructions").style.display = "none";
 		document.querySelector("#tagDec").style.display = "none";
 		document.querySelector("#tagInc").style.display = "none";
 		document.querySelector("#videoPlaceholder").style.display = "inline-block";
 		document.querySelector("#tagInstructionsTitle").style.display = "block";
 		document.querySelector("#tagInstructions").style.display = "block";
+		document.querySelector("#entryBoxInstructions").style.display = "block";
 	}
 	showPlayer () {
 		document.querySelector("#currentTagDisplay").style.display = "block";
 		document.querySelector("#player").style.display =  "block";
+		document.querySelector("#playerInstructions").style.display = "block";
 		document.querySelector("#tagDec").style.display = "block";
 		document.querySelector("#tagInc").style.display = "block";
 		document.querySelector("#videoPlaceholder").style.display = "none";
 		document.querySelector("#tagInstructionsTitle").style.display = "none";
 		document.querySelector("#tagInstructions").style.display = "none";
+		document.querySelector("#entryBoxInstructions").style.display = "none";
 	}
 	updateTagDisplay(tag) {
 		document.querySelector("#currentTagDisplay").innerHTML = `Current Tag: ${tag.name}`;	
@@ -105,7 +139,7 @@ nirb.YTManager = class {
 }
 nirb.TaggerParser = class {
 	constructor() {
-		this.taggerRegex = /(?:Tags)?\n?(?:https:\/\/www\.youtube\.com\/watch\?v=(.*?))(?:\sstart\stime:\s(\d\d:\d\d:\d\d\s\w*)\s\((\d\d)\))?\n((?:.|\n)*)/gm;
+		this.taggerRegex = /(?:Tags)?\n?(?:https:\/\/www\.youtube\.com\/watch\?v=(.{11}).*?)(?:\sstart\stime:\s(\d\d:\d\d:\d\d\s\w*)\s\((\d\d)\))?\n((?:.|\n)*)/gm;
 		this.shortenedTaggerRegex = /(?:Tags)?\n?(?:https:\/\/youtu\.be\/(.*))(?:\sstart\stime:\s(\d\d:\d\d:\d\d\s\w*)\s\((\d\d)\))?\n((?:.|\n)*)/gm;
 
 		this.taggerRegexArray = [];
@@ -113,8 +147,8 @@ nirb.TaggerParser = class {
 		this.taggerRegexArray.push(this.shortenedTaggerRegex);
 		this.isKorotaggerInput = true;
 
-		this.tagListRegex = /(.*?)(?:(\d{1,2})(?:h|:))?(?:(\d{1,2})(?:m|:))?(?:(\d{1,2})s?)$/;
-		//this.tagListRegex = /(.*?)(?:(\d{1,2})(?::))?(?:(\d{1,2})(?::))?(?:(\d{1,2}))(.*?)$/;
+		this.koroTaggerTitleRegex = /(.*?)(?:(\d{1,2})(?:h|:))?(?:(\d{1,2})(?:m|:))?(?:(\d{1,2})s?)$/;
+		this.tagListRegex = /(.*?)(?:(\d{1,2})(?::))?(?:(\d{1,2})(?::))?(?:(\d{1,2}))(.*?)$/;
 		this.tagListRegexArray = [];
 		this.tagListRegexArray.push(this.tagListRegex);
 		this.numTags = 0;
@@ -127,6 +161,14 @@ nirb.TaggerParser = class {
 				return
 			}
 			this.parseVideoDetails(taggerTextArea.value);
+		});
+
+		document.querySelector("#korotaggerToggle").addEventListener("change", (event) => {
+			if(event.target.checked) {
+				this.isKorotaggerInput = true;
+			} else {
+				this.isKorotaggerInput = false;
+			}
 		});
 	}
 
@@ -213,7 +255,16 @@ nirb.TaggerParser = class {
 				seconds = secondArray[1];
 			}
 			console.log("parsed out: " + hours + " hours, " + minutes + " minutes, and " + seconds + " seconds!")
+			let tagArray = this.tagListRegex.exec(rawTagArray[i]);
+			let tagTitle = rawTagArray[i];
+			let tagTotalSeconds = (hours * 3600) + (minutes * 60) + (seconds * 1); //tag will always have a seconds field
+			const newTag = new nirb.TSTag(tagTitle, tagTotalSeconds, hours, minutes, seconds);
+			console.log(`adding KOROtag with title "${tagTitle}" at ${tagTotalSeconds} (${hours}h${minutes}m${seconds}s)`);
+			nirb.YTManagerSingleton.addTagToList(newTag);
 		}
+
+		nirb.YTManagerSingleton.showPlayer();
+		nirb.YTManagerSingleton.currentIndex = -1; //start at an invalid tag index so the video doesn't start playing until the user clicks next, after which it starts at the first tag
 	}
 
 	parseVideoDetails(taggerString) {

@@ -22,6 +22,7 @@
 	<div class="row justify-content-center">
 		<!-- <iframe id="player" width="900" height="506" src="https://www.youtube.com/embed/38_9XUFTFzs" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" fs="0"></iframe> -->
 		<h3 id="videoPlaceholder">Load a video by pasting in a link to the YouTube video, followed by a list of timestamps info into the textbox below!</h3>
+		<h6 id="entryBoxInstructions">(or just copy directly from @Koro-san), and check the box</h6>
 		<div id="player"></div>
 		<script>
 			// 2. This code loads the IFrame Player API code asynchronously.
@@ -75,10 +76,16 @@
 		</div>
 	</div>
 	<div class="row justify-content-center">
+		<div id="playerInstructions">Left/Right Arrow Keys to move between tags, Esc to close player (make sure player is not in focus to use keyboard controls!)</div>
+	</div>
+	<div class="row justify-content-center">
 		<textarea name="taggerInput" id="taggerInput" cols="50" rows="10"></textarea>
 	</div>
 	<div class="row justify-content-center">
 		<button id="submitTaggerInput" class="btn">Submit</button>
+	</div>
+	<div class="row justify-content-center">
+		<input id="korotaggerToggle" type="checkbox">Korotagger Input?</input>
 	</div>
 	<hr>
 	<div class="row justify-content-center">
