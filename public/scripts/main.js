@@ -42,7 +42,7 @@ nirb.YTManager = class {
 		document.addEventListener('keydown', (event) => {
 			let name = event.key;
 			let code = event.code;
-			if(event.key === "ArrowRight"){
+			if (event.key === "ArrowRight") {
 				if (this.currentIndex >= this.tagsArray.length - 1) {
 					console.log("Already at last tag, can't go forwards any further!");
 				} else {
@@ -51,7 +51,7 @@ nirb.YTManager = class {
 				}
 			}
 
-			if(event.key === "ArrowLeft"){
+			if (event.key === "ArrowLeft") {
 				if (this.currentIndex <= 0) {
 					console.log("Already at first tag, can't go back any further!");
 				} else {
@@ -60,12 +60,42 @@ nirb.YTManager = class {
 				}
 			}
 
-			if(event.key === "Escape"){
+			if (event.key === "Escape") {
 				this.hidePlayer();
 				this.resetTagList();
 				player.seekTo(0);
 				player.pauseVideo();
 				this.updateTagDisplay(new nirb.TSTag("", 0, 0, 0, 0));
+			}
+			if (event.key === "d") {
+				console.log(this.tagsArray);
+			}
+			if (event.key === "x") {
+				if (player.getDuration() == 0) {
+					return;
+				}
+				console.log("exporting");
+				console.log("video duration: " + player.getDuration());
+				let exportArray = [];
+				for (let i = 1; i < this.tagsArray.length; i++) {
+					const prevTag = this.tagsArray[i - 1];
+					const curTag = this.tagsArray[i];
+					// need time start - time end, along with title of prev
+					let clipTag = new nirb.ClipTag(prevTag.name, prevTag.time, curTag.time);
+					exportArray.push(clipTag);
+				}
+				// do the last tag
+				const lastTag = this.tagsArray[this.tagsArray.length - 1];
+				let lastClipTag = new nirb.ClipTag(lastTag.name, lastTag.time, player.getDuration());
+				exportArray.push(lastClipTag);
+				console.log(exportArray);
+
+
+				let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportArray));
+				let dlAnchorElem = document.getElementById('downloadAnchorElem');
+				dlAnchorElem.setAttribute("href", dataStr);
+				dlAnchorElem.setAttribute("download", "data.json");
+				dlAnchorElem.click();
 			}
 		});
 
@@ -74,22 +104,24 @@ nirb.YTManager = class {
 		this.videoID = null;
 		this.currentIndex = -1;
 	}
-	setCurrentVideo (ytID) {
+	setCurrentVideo(ytID) {
 		console.log("Now playing: " + ytID);
 		this.videoID = ytID;
 		// this.videoPlayer.src = `https://www.youtube.com/embed/${ytID}`;
-		player.loadVideoById({'videoId': ytID});
+		player.loadVideoById({
+			'videoId': ytID
+		});
 		player.seekTo(0);
 		player.pauseVideo();
 	}
-	resetTagList () {
+	resetTagList() {
 		this.tagsArray = [];
 	}
-	addTagToList (tag) {
+	addTagToList(tag) {
 		this.tagsArray.push(tag)
 	}
-	goToFirstTag () {
-		if (this.tagsArray[0]){
+	goToFirstTag() {
+		if (this.tagsArray[0]) {
 			console.log(`Jumping to tag ${this.tagsArray[0].name} at time ${this.tagsArray[0].time}`);
 			//this.videoPlayer.src = `https://www.youtube.com/embed/${this.videoID}?t=${this.tagsArray[0].time}`;
 			player.seekTo(this.tagsArray[0].time);
@@ -99,7 +131,7 @@ nirb.YTManager = class {
 			console.log("No tags loaded!");
 		}
 	}
-	goToTagAtIndex (index) {
+	goToTagAtIndex(index) {
 		if (this.tagsArray[index]) {
 			// console.log(`Jumping to tag ${this.tagsArray[index].name} at time ${this.tagsArray[index].time}`);
 			this.updateTagDisplay(this.tagsArray[index]);
@@ -111,9 +143,9 @@ nirb.YTManager = class {
 			console.error(`That tag doesn't exist. (Tried accessing tag at index ${index} of the tag list)`);
 		}
 	}
-	hidePlayer () {
+	hidePlayer() {
 		document.querySelector("#currentTagDisplay").style.display = "none";
-		document.querySelector("#player").style.display =  "none";
+		document.querySelector("#player").style.display = "none";
 		document.querySelector("#playerInstructions").style.display = "none";
 		document.querySelector("#tagDec").style.display = "none";
 		document.querySelector("#tagInc").style.display = "none";
@@ -122,9 +154,9 @@ nirb.YTManager = class {
 		document.querySelector("#tagInstructions").style.display = "block";
 		document.querySelector("#entryBoxInstructions").style.display = "block";
 	}
-	showPlayer () {
+	showPlayer() {
 		document.querySelector("#currentTagDisplay").style.display = "block";
-		document.querySelector("#player").style.display =  "block";
+		document.querySelector("#player").style.display = "block";
 		document.querySelector("#playerInstructions").style.display = "block";
 		document.querySelector("#tagDec").style.display = "block";
 		document.querySelector("#tagInc").style.display = "block";
@@ -134,7 +166,7 @@ nirb.YTManager = class {
 		document.querySelector("#entryBoxInstructions").style.display = "none";
 	}
 	updateTagDisplay(tag) {
-		document.querySelector("#currentTagDisplay").innerHTML = `Current Tag: ${tag.name}`;	
+		document.querySelector("#currentTagDisplay").innerHTML = `Current Tag: ${tag.name}`;
 	}
 }
 nirb.TaggerParser = class {
@@ -145,7 +177,7 @@ nirb.TaggerParser = class {
 		this.taggerRegexArray = [];
 		this.taggerRegexArray.push(this.taggerRegex);
 		this.taggerRegexArray.push(this.shortenedTaggerRegex);
-		this.isKorotaggerInput = true;
+		this.isKorotaggerInput = false;
 
 		this.koroTaggerTitleRegex = /(.*?)(?:(\d{1,2})(?:h|:))?(?:(\d{1,2})(?:m|:))?(?:(\d{1,2})s?)$/;
 		this.tagListRegex = /(.*?)(?:(\d{1,2})(?::))?(?:(\d{1,2})(?::))?(?:(\d{1,2}))(.*?)$/;
@@ -156,7 +188,7 @@ nirb.TaggerParser = class {
 			const taggerTextArea = document.querySelector("#taggerInput");
 			// console.log("button pressed");
 			// console.log(taggerTextArea.value);
-			if(this.isKorotaggerInput){
+			if (this.isKorotaggerInput) {
 				this.parseVideoDetailsKorotagger(taggerTextArea.value)
 				return
 			}
@@ -164,7 +196,7 @@ nirb.TaggerParser = class {
 		});
 
 		document.querySelector("#korotaggerToggle").addEventListener("change", (event) => {
-			if(event.target.checked) {
+			if (event.target.checked) {
 				this.isKorotaggerInput = true;
 			} else {
 				this.isKorotaggerInput = false;
@@ -182,23 +214,23 @@ nirb.TaggerParser = class {
 		//the reason it's an array is because there are two regexes
 		//that search for both shortened and unshortened youtube video urls
 		//also leaves room for expansion later with other formats like output from discord bots
-		for(let i = 0; i<this.taggerRegexArray.length;i++){
+		for (let i = 0; i < this.taggerRegexArray.length; i++) {
 			captureArray = this.taggerRegexArray[i].exec(taggerString);
-			if(captureArray != null){
+			if (captureArray != null) {
 				break;
 			}
 		}
 
 		//try again, sometimes it doesn't work on the first try for some reason
-		if(captureArray == null){
+		if (captureArray == null) {
 
-			for(let i = 0; i<this.taggerRegexArray.length;i++){
+			for (let i = 0; i < this.taggerRegexArray.length; i++) {
 				captureArray = this.taggerRegexArray[i].exec(taggerString);
-				if(captureArray != null){
+				if (captureArray != null) {
 					break;
 				}
 			}
-			if(captureArray == null){
+			if (captureArray == null) {
 				window.alert("Failed to parse tags, bad formatting?");
 				return;
 			}
@@ -219,7 +251,7 @@ nirb.TaggerParser = class {
 		console.log(rawTagArray);
 		nirb.YTManagerSingleton.resetTagList();
 
-		for (let i = 0; i<rawTagArray.length; i++) {
+		for (let i = 0; i < rawTagArray.length; i++) {
 			// parse second
 			console.log("inspecting string: " + rawTagArray[i])
 			let secondRegex = /(\d{1,2})s$/;
@@ -238,20 +270,20 @@ nirb.TaggerParser = class {
 			let minutes = 0;
 			let seconds = 0;
 
-			if(hourMinuteSecondArray){
+			if (hourMinuteSecondArray) {
 				hours = hourMinuteSecondArray[1];
 				minutes = hourMinuteSecondArray[2];
 				seconds = hourMinuteSecondArray[3];
 			}
-			if(hourSecondArray){
+			if (hourSecondArray) {
 				hours = hourSecondArray[1];
 				seconds = hourSecondArray[2];
 			}
-			if(minuteSecondArray){
+			if (minuteSecondArray) {
 				minutes = minuteSecondArray[1];
 				seconds = minuteSecondArray[2];
 			}
-			if(secondArray){
+			if (secondArray) {
 				seconds = secondArray[1];
 			}
 			console.log("parsed out: " + hours + " hours, " + minutes + " minutes, and " + seconds + " seconds!")
@@ -276,23 +308,23 @@ nirb.TaggerParser = class {
 		//the reason it's an array is because there are two regexes
 		//that search for both shortened and unshortened youtube video urls
 		//also leaves room for expansion later with other formats like output from discord bots
-		for(let i = 0; i<this.taggerRegexArray.length;i++){
+		for (let i = 0; i < this.taggerRegexArray.length; i++) {
 			captureArray = this.taggerRegexArray[i].exec(taggerString);
-			if(captureArray != null){
+			if (captureArray != null) {
 				break;
 			}
 		}
 
 		//try again, sometimes it doesn't work on the first try for some reason
-		if(captureArray == null){
+		if (captureArray == null) {
 
-			for(let i = 0; i<this.taggerRegexArray.length;i++){
+			for (let i = 0; i < this.taggerRegexArray.length; i++) {
 				captureArray = this.taggerRegexArray[i].exec(taggerString);
-				if(captureArray != null){
+				if (captureArray != null) {
 					break;
 				}
 			}
-			if(captureArray == null){
+			if (captureArray == null) {
 				window.alert("Failed to parse tags, bad formatting?");
 				return;
 			}
@@ -315,7 +347,7 @@ nirb.TaggerParser = class {
 		console.log("Parsing over array:")
 		console.log(rawTagArray);
 		nirb.YTManagerSingleton.resetTagList(); // clear old list if there was one
-		for (let i = 0; i<rawTagArray.length; i++) {
+		for (let i = 0; i < rawTagArray.length; i++) {
 			let tagHours = 0;
 			let tagMinutes = 0;
 			let tagSeconds = 0;
@@ -346,17 +378,17 @@ nirb.TaggerParser = class {
 			//this is my solution:
 			let timeArray = []; //empty array that acts as a stack
 			//iterate backwards from the seconds index to the hours index
-			for(let timeDenom = 4; timeDenom>=2; timeDenom--){
-				if(tagArray[timeDenom] && tagArray[timeDenom] != 0){
+			for (let timeDenom = 4; timeDenom >= 2; timeDenom--) {
+				if (tagArray[timeDenom] && tagArray[timeDenom] != 0) {
 					timeArray.push(parseInt(tagArray[timeDenom])); //only insert into the stack if the time isn't null(zero is an exception)
-																   //so we override its falsy nature
+					//so we override its falsy nature
 				}
 			}
 			//timeArray now has all the units of time in order of ascending magnitude
 			//now we can just set the variables declared at the beginning of this for loop to the values in the array
 			//console.log(`TIME DENOMINATION: ${timeArray}`);
-			for(let timeIndex = 0; timeIndex<timeArray.length; timeIndex++){
-				switch(timeIndex){
+			for (let timeIndex = 0; timeIndex < timeArray.length; timeIndex++) {
+				switch (timeIndex) {
 					case 0:
 						tagSeconds = timeArray[timeIndex];
 						break;
@@ -371,9 +403,9 @@ nirb.TaggerParser = class {
 
 			//calculate total time in seconds because we need that to jump to that point in the video
 			let tagTotalSeconds = (tagHours * 3600) + (tagMinutes * 60) + tagSeconds; //tag will always have a seconds field
-			const newTag = new nirb.TSTag(tagTitle, tagTotalSeconds, tagHours, tagMinutes, tagSeconds);
+			const newTag = new nirb.TSTag(tagTitle.trim(), tagTotalSeconds, tagHours, tagMinutes, tagSeconds);
 
-			console.log(`adding tag with title "${tagTitle}" at ${tagTotalSeconds} (${tagHours}h${tagMinutes}m${tagSeconds}s)`);
+			console.log(`adding tag with title "${tagTitle.trim()}" at ${tagTotalSeconds} (${tagHours}h${tagMinutes}m${tagSeconds}s)`);
 			nirb.YTManagerSingleton.addTagToList(newTag);
 		}
 		// console.log(nirb.YTManagerSingleton.tagsArray);
@@ -392,6 +424,14 @@ nirb.TSTag = class {
 		this.seconds = tagSeconds;
 	}
 }
+// data holder for export format
+nirb.ClipTag = class {
+	constructor(tagName, tagStartSeconds, tagEndSeconds) {
+		this.tagName = tagName;
+		this.tagStartSeconds = tagStartSeconds;
+		this.tagEndSeconds = tagEndSeconds;
+	}
+}
 /* Main */
 /** function and class syntax examples */
 nirb.main = function () {
@@ -399,10 +439,10 @@ nirb.main = function () {
 	this.YTManagerSingleton = new nirb.YTManager();
 	this.YTManagerSingleton.hidePlayer();
 	this.TaggerParserSingleton = new nirb.TaggerParser();
-	
+
 	// document.querySelector("#testButton").addEventListener('click', (event) => {
 	// 	console.log("pressed button");
-		
+
 	// 	try {
 	// 		player.loadVideoById("C_6SLgOZ3HY", 0);
 	// 		// player.loadVideoById(videoId:String, startSeconds:Number)
