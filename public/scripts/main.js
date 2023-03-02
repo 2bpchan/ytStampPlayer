@@ -379,7 +379,7 @@ nirb.TaggerParser = class {
 			let timeArray = []; //empty array that acts as a stack
 			//iterate backwards from the seconds index to the hours index
 			for (let timeDenom = 4; timeDenom >= 2; timeDenom--) {
-				if (tagArray[timeDenom] && tagArray[timeDenom] != 0) {
+				if (tagArray[timeDenom] && (!(tagArray[timeDenom] === "0") || !(tagArray[timeDenom] === "00"))) {
 					timeArray.push(parseInt(tagArray[timeDenom])); //only insert into the stack if the time isn't null(zero is an exception)
 					//so we override its falsy nature
 				}
