@@ -103,6 +103,7 @@ nirb.YTManager = class {
 		this.tagsArray = [];
 		this.videoID = null;
 		this.currentIndex = -1;
+        this.loadedVideoId = "";
 	}
 	setCurrentVideo(ytID) {
 		console.log("Now playing: " + ytID);
@@ -120,25 +121,32 @@ nirb.YTManager = class {
 	addTagToList(tag) {
 		this.tagsArray.push(tag)
 	}
-	goToFirstTag() {
-		if (this.tagsArray[0]) {
-			console.log(`Jumping to tag ${this.tagsArray[0].name} at time ${this.tagsArray[0].time}`);
-			//this.videoPlayer.src = `https://www.youtube.com/embed/${this.videoID}?t=${this.tagsArray[0].time}`;
-			player.seekTo(this.tagsArray[0].time);
-			player.playVideo();
-			// this.currentIndex = 0;
-		} else {
-			console.log("No tags loaded!");
-		}
-	}
 	goToTagAtIndex(index) {
 		if (this.tagsArray[index]) {
 			// console.log(`Jumping to tag ${this.tagsArray[index].name} at time ${this.tagsArray[index].time}`);
 			this.updateTagDisplay(this.tagsArray[index]);
 			this.currentIndex = index;
 			// this.videoPlayer.src = `https://www.youtube.com/embed/${this.videoID}?t=${this.tagsArray[index].time}`;
-			player.seekTo(this.tagsArray[index].time);
-			player.playVideo();
+
+            let start = this.tagsArray[index].time;
+            if(start > 0){
+                start = start - 1;
+            }
+            let end = player.getDuration();
+            if(index < this.tagsArray.length-1){
+                end = this.tagsArray[index+1].time;
+            }
+            if(start == end){
+                end = end + 1;
+            }
+			//player.seekTo(this.tagsArray[index].time);
+			//player.playVideo();
+
+            console.log("loading: " + this.loadedVideoId)
+            player.loadVideoById({'videoId': this.loadedVideoId,
+               'startSeconds': start,
+               'endSeconds': end});
+            player.playVideo();
 		} else {
 			console.error(`That tag doesn't exist. (Tried accessing tag at index ${index} of the tag list)`);
 		}
@@ -238,7 +246,7 @@ nirb.TaggerParser = class {
 		console.log(captureArray);
 		const videoId = captureArray[1];
 		nirb.YTManagerSingleton.setCurrentVideo(videoId);
-
+        nirb.YTManagerSingleton.loadedVideoId = videoId;
 		// const startTime = captureArray[2];
 		this.numTags = captureArray[3];
 		const rawTagString = captureArray[4];
@@ -335,6 +343,7 @@ nirb.TaggerParser = class {
 		console.log(captureArray);
 		const videoId = captureArray[1];
 		nirb.YTManagerSingleton.setCurrentVideo(videoId);
+        nirb.YTManagerSingleton.loadedVideoId = videoId;
 
 		// const startTime = captureArray[2];
 		this.numTags = captureArray[3];
