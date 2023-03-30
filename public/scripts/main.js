@@ -65,7 +65,7 @@ nirb.YTManager = class {
 				this.resetTagList();
 				player.seekTo(0);
 				player.pauseVideo();
-				this.updateTagDisplay(new nirb.TSTag("", 0, 0, 0, 0));
+				this.updateTagDisplay("","");
 			}
 			if (event.key === "d") {
 				console.log(this.tagsArray);
@@ -124,7 +124,14 @@ nirb.YTManager = class {
 	goToTagAtIndex(index) {
 		if (this.tagsArray[index]) {
 			// console.log(`Jumping to tag ${this.tagsArray[index].name} at time ${this.tagsArray[index].time}`);
-			this.updateTagDisplay(this.tagsArray[index]);
+
+            if(index == this.tagsArray.length - 1){
+                this.updateTagDisplay(this.tagsArray[index].name, 'none');
+            } else {
+                let nextTag = this.tagsArray[index+1];
+                let nextTagPreview = `${nextTag.hours}h${nextTag.minutes}m${nextTag.seconds}s`;
+                this.updateTagDisplay(this.tagsArray[index].name, nextTagPreview);
+            }
 			this.currentIndex = index;
 			// this.videoPlayer.src = `https://www.youtube.com/embed/${this.videoID}?t=${this.tagsArray[index].time}`;
 
@@ -173,8 +180,8 @@ nirb.YTManager = class {
 		document.querySelector("#tagInstructions").style.display = "none";
 		document.querySelector("#entryBoxInstructions").style.display = "none";
 	}
-	updateTagDisplay(tag) {
-		document.querySelector("#currentTagDisplay").innerHTML = `Current Tag: ${tag.name}`;
+	updateTagDisplay(curTag, nextTag) {
+		document.querySelector("#currentTagDisplay").innerHTML = `Current Tag: ${curTag} (Next: ${nextTag})`;
 	}
 }
 nirb.TaggerParser = class {
