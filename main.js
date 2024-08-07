@@ -22,7 +22,6 @@ nirb.functionName = function () {
 //for use with this app
 nirb.YTManager = class {
 	constructor() {
-		// TODO set up some click listeners here for tag jumping controls later
 		document.querySelector("#tagInc").addEventListener("click", (event) => {
 			if (this.currentIndex >= this.tagsArray.length - 1) {
 				console.log("Already at last tag, can't go forwards any further!");
@@ -99,7 +98,6 @@ nirb.YTManager = class {
 			}
 		});
 
-		// this.videoPlayer = document.querySelector("#player");
 		this.tagsArray = [];
 		this.videoID = null;
 		this.currentIndex = -1;
@@ -107,7 +105,6 @@ nirb.YTManager = class {
 	setCurrentVideo(ytID) {
 		console.log("Now playing: " + ytID);
 		this.videoID = ytID;
-		// this.videoPlayer.src = `https://www.youtube.com/embed/${ytID}`;
 		player.loadVideoById({
 			'videoId': ytID
 		});
@@ -123,7 +120,6 @@ nirb.YTManager = class {
 	goToFirstTag() {
 		if (this.tagsArray[0]) {
 			console.log(`Jumping to tag ${this.tagsArray[0].name} at time ${this.tagsArray[0].time}`);
-			//this.videoPlayer.src = `https://www.youtube.com/embed/${this.videoID}?t=${this.tagsArray[0].time}`;
 			player.seekTo(this.tagsArray[0].time);
 			player.playVideo();
 			// this.currentIndex = 0;
@@ -187,10 +183,9 @@ nirb.TaggerParser = class {
 		this.isKorotaggerInput = false;
 
 		this.koroTaggerTitleRegex = /(.*?)(?:(\d{1,2})(?:h|:))?(?:(\d{1,2})(?:m|:))?(?:(\d{1,2})s?)$/;
-		this.tagListRegex = /(.*?)(?:(\d{1,2})(?::))?(?:(\d{1,2})(?::))?(?:(\d{1,2}))(.*?)$/;
+		this.tagListRegex = /(.*?)(?:(\d{1,2})(?::))?(?:(\d{1,2})(?::))(?:(\d{1,2}))(.*?)$/;
 		this.tagListRegexArray = [];
 		this.tagListRegexArray.push(this.tagListRegex);
-		this.numTags = 0;
 		document.querySelector("#submitTaggerInput").addEventListener('click', (event) => {
 			const taggerTextArea = document.querySelector("#taggerInput");
 			// console.log("button pressed");
@@ -247,7 +242,6 @@ nirb.TaggerParser = class {
 		nirb.YTManagerSingleton.setCurrentVideo(videoId);
 
 		// const startTime = captureArray[2];
-		this.numTags = captureArray[3];
 		const rawTagString = captureArray[4];
 		this.parseTagsKorotagger(rawTagString);
 	}
@@ -344,7 +338,6 @@ nirb.TaggerParser = class {
 		nirb.YTManagerSingleton.setCurrentVideo(videoId);
 
 		// const startTime = captureArray[2];
-		this.numTags = captureArray[3];
 		const rawTagString = captureArray[4];
 		this.parseTags(rawTagString);
 	}
@@ -369,7 +362,11 @@ nirb.TaggerParser = class {
 			// (index 0 is the full match)
 			let tagTitle = tagArray[1];
 			if (tagArray[1] == "" || tagArray[1] == null) {
-				tagTitle = tagArray[5]; // if title was not found at the beginning put in the title we found at the end
+				tagTitle = tagArray[5].trim(); // if title was not found at the beginning put in the title we found at the end
+			}
+			// if both titles have content, trim and then append them together with a space
+			if (!(tagArray[1] == "" || tagArray[1] == null) && !(tagArray[5] == "" || tagArray[5] == null)) {
+				tagTitle = `${tagArray[1].trim()} ${tagArray[5].trim()}`;
 			}
 
 			//parse the time from the array returned by the regex exec
@@ -386,9 +383,8 @@ nirb.TaggerParser = class {
 			let timeArray = []; //empty array that acts as a stack
 			//iterate backwards from the seconds index to the hours index
 			for (let timeDenom = 4; timeDenom >= 2; timeDenom--) {
-				if (tagArray[timeDenom] && (!(tagArray[timeDenom] === "0") || !(tagArray[timeDenom] === "00"))) {
-					timeArray.push(parseInt(tagArray[timeDenom])); //only insert into the stack if the time isn't null(zero is an exception)
-					//so we override its falsy nature
+				if (tagArray[timeDenom]) {
+					timeArray.push(parseInt(tagArray[timeDenom])); //only insert into the stack if the time isn't null
 				}
 			}
 			//timeArray now has all the units of time in order of ascending magnitude
